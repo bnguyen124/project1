@@ -23,15 +23,12 @@ tidy=TRUE, tidy.opts=list(width.cutoff=60), R.options=list(max.print=100))
 
 #### Introduction 
 
-Paragraph or two introducing your datasets and variables, why they are interesting to you, etc.
-
 This project employ two datasets acquired from the website  "https://vincentarelbundock.github.io/Rdatasets/datasets.html", both of which explores the relationship between gender and their influence on employment aspects such as wages. The dataset, "ggs_wages," contains wage data from the General Social Survey that took place from 1974 through 2018. This data was recorded to illustrate wage discrepancies by gender. This dataset contains many variable, such as respondent occupation, age, number of children, occupation prestige, marital status, work status, and education status. With many variables in this dataset, however, this project will primarily focus on "gender" (male/female), and their respective "income".
 
 These datasets and variables are interesting to me because gender inequality remains a prominent problem in our society today. I believe that there should not be a gender wage gap in the work place. Women and men should be earning the same amount of money for equal work. From these data sets, there is a chance for potential discrimination associations in terms of wage gaps. I suspect that there might be a wage gap between men and women in the second data set, demonstrating that men earns more money than women. This is, of course, just my personal hypothesis and is all speculation until proven accurate using data wrangling, exploration, visualization 
 
 
 ```{R}
-# read your datasets in here, e.g., with read_csv()
 library(tidyverse)
 
 wagegap <- read_csv("gss_wages.csv")
@@ -48,10 +45,8 @@ wage2
 
 #### Tidying: Reshaping
 
-If your datasets are tidy already, demonstrate that you can reshape data with pivot wider/longer here (e.g., untidy and then retidy). Alternatively, it may be easier to wait until the wrangling section so you can reshape your summary statistics. Note here if you are going to do this.
 
 ```{R}
-# your tidying code (if applicable; can also wait until wrangling section)
 
 #untidy
 untidywagegap <- wagegap %>% pivot_wider(names_from="gender",values_from="age")
@@ -211,13 +206,14 @@ table1 %>% gt %>%
 
 ```
 
-
    Upon wrangling the joined data, the findings/results did not differ significantly from my original hypothesis. In filtering the data by gender and annual income, I was able to find out the amount of people from both genders make above the minimum wage, using Texas minimum wage of $15,000 a year as reference. More people who identify as male (12,844) earned more than Texas minimum wage compared to that of females (7,665). Next, I wanted to wrangle the data to find out if there are more males persuing higher education/degrees than that of females, and how that would correlate with the mean income from both genders. To do so, I used the filter and count dplyr functions to generate my targeted summary statistics. In doing so, I found that there are, in fact, higher proportion of males with higher degrees than that of females. In this data set, there only 20.5% of females have a degree of 'Bachelor' or 'Graduate', while males have a 24.8% of having a degree of 'Bachelor' or 'Graduate'. Using the dyplr functions filter and summarize_all, I was able to filter by gender and find out the mean income of both genders: $16029.7 for Female and $28504.11 for Male. This summary statistic is also shown later on when I compute the summary statistic tables.
     Using the dyplr function 'summarize', I was able to make summary statistics tables of different variables. Table1 demonstrates that the mean income of Males is higher than that of Females. Table2 demonstrates when looking at job prestigious scores, Males has lightly higher job prestigious with a mean score of 43.73375 in comparison to Female's prestigious job score of 42.50235. Table3 demonstrates the summary statistics for the age of Females and Males, with Females having the mean age of 46.7 and Males with the mean age of 45.48. Finally, table4 demonstrates the summary statistics for the number of children that each respective gender has, with Females having a mean number of children of 2.05 and Males with 1.76. These numbers, while representative of this data, are not 100% accurate as I ommited the NAs in the data set. In using creating my own function and using it inside summarize, I was able to compute the amount and proportion of missing NAs in the data set, as shown above in num_NA and prop_NA, respectively.
 
 #### Visualizing
 
 ```{R}
+#Plot 1
+
 ggplot(fulldata, aes(x = educcat, y = realrinc, fill=gender))+
   geom_bar(stat="summary", fun=mean, position="dodge")+
   geom_errorbar(stat="summary", fun.data=mean_se, position="dodge")+
@@ -226,12 +222,12 @@ ggplot(fulldata, aes(x = educcat, y = realrinc, fill=gender))+
     ggtitle("Amount of Income by Gender and Education Status") +scale_y_continuous(labels=scales::dollar)
 ```
 
-Discussion of plot 1
+Discussion of Plot 1
 
 *In this bar graph, it is shown that across all education status, Male has higher income compared to Female. In addition, the plot depicts that the higher the education status, the higher the income of both genders. People holding Graduate level and Bachelor level degrees make more money than those who did not pursue higher education. In terms of error bars, omitting the data from the NA Education status, it seems that there is most error variation for Males with Graduate degrees in terms of income. All in all, when looking at gender and income alone, it is apparent that there is, in fact, a wage gap between both genders.*
 
 ```{R}
-
+#Plot 2
 
 ggplot(fulldata, aes(x = realrinc, fill = gender)) + geom_density(alpha = 0.8) +
     labs(x = "Annual Income ($)", y = "Density") + 
@@ -239,12 +235,12 @@ ggplot(fulldata, aes(x = realrinc, fill = gender)) + geom_density(alpha = 0.8) +
 
 
 ```
-Discussion of plot 2
+Discussion of Plot 2
 
 *Similar to histograms, density plots are used to visualize the distribution of a numeric variable, annual income in this case, by drawing appropriate continuous curves. This type of plot is useful for this data set because it contains many data points, which is allows for the density plot to be reliable and informative. For this data set, density plots have an advantage over histograms because we can use it to visualize the income distribution of both genders. The red line on the plot demonstrates the line of minimum wage using Texas as reference ($15,000). As shown above, there is a larger density of Females who are making less than minimum wage compared to the density of Males who are making less than minimum wage. Males are depicted to have a wider distribution towards higher income, while there is a low density of Females who are making high income. Conclusively, this density plot shows the relationship between gender and income, and further validate my earlier hypothesis that Males have higher income than Females.*
 
 ```{R}
-
+#Plot 3
 
 ggplot(fulldata, aes(age, realrinc)) + geom_hex() +scale_fill_gradient(low = "dark red", high = "yellow") +
   geom_hline(yintercept = c(15000), color = "blue") + labs(x = "Age", y = "Annual Income ($)") + 
@@ -252,7 +248,7 @@ ggplot(fulldata, aes(age, realrinc)) + geom_hex() +scale_fill_gradient(low = "da
 
 
 ```
-Discussion of plot 3
+Discussion of Plot 3
 
 *For this plot, I wanted to explore the continuous bivariate distribution between age and annual income. The blue line on the plot demonstrates the line of minimum wage using Texas as reference ($15,000).  This heat map is helpful in visualizing the magnitude of the distributions as color in two dimensions. It is apparent in this plot that the majority of people who are making minimum wage and less are under the age of 40. The plot depicts only a small subset of people who earns more than $100,000 annually.*
 
