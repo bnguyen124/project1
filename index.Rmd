@@ -19,16 +19,32 @@ tidy=TRUE, tidy.opts=list(width.cutoff=60), R.options=list(max.print=100))
 
 ## Data Wrangling, Exploration, Visualization
 
-### Name and EID here
+### Bao-Tran Nguyen, bnn428
 
 #### Introduction 
 
 Paragraph or two introducing your datasets and variables, why they are interesting to you, etc.
 
+*This project employ two datasets acquired from the website  "https://vincentarelbundock.github.io/Rdatasets/datasets.html", both of which explores the relationship between gender and their influence on employment aspects such as wages. The dataset, "ggs_wages," contains wage data from the General Social Survey that took place from 1974 through 2018. This data was recorded to illustrate wage discrepancies by gender. This dataset contains many variable, such as respondent occupation, age, number of children, occupation prestige, marital status, work status, and education status. With many variables in this dataset, however, this project will primarily focus on "gender" (male/female), and their respective "income".*
+
+*These datasets and variables are interesting to me because gender inequality remains a prominent problem in our society today. I believe that there should not be a gender wage gap in the work place. Women and men should be earning the same amount of money for equal work. From these data sets, there is a chance for potential discrimination associations in terms of wage gaps. I suspect that there might be a wage gap between men and women in the second data set, demonstrating that men earns more money than women. This is, of course, just my personal hypothesis and is all speculation until proven accurate using data wrangling, exploration, visualization* 
+
+
 ```{R}
 # read your datasets in here, e.g., with read_csv()
+library(tidyverse)
 
+wagegap <- read_csv("gss_wages.csv")
+
+wagegap%>%select(1:6) -> wage1
+wage1
+wagegap%>%select(1,7:12) -> wage2
+wage2
 ```
+
+*Due to some technical errors with my first data set, I was instructed by Dr.Woodward to split up my second data set and join them later by X1*
+
+
 
 #### Tidying: Reshaping
 
@@ -36,56 +52,213 @@ If your datasets are tidy already, demonstrate that you can reshape data with pi
 
 ```{R}
 # your tidying code (if applicable; can also wait until wrangling section)
+
+#untidy
+untidywagegap <- wagegap %>% pivot_wider(names_from="gender",values_from="age")
+untidywagegap
+
+#tidy
+tidywagegap <- untidywagegap %>% pivot_longer(11:12, names_to="gender", values_to="age", values_drop_na=T)
+tidywagegap 
+
+wagegap%>%summarize(sum(is.na(age)))
+
 ```
 
     
 #### Joining/Merging
 
 ```{R}
-# your joining code
+#joining code
+fulldata <- full_join(wage1, wage2, by=c("X1" = "X1"))
 
-# your joining code
+fulldata
+
+#total observations/rows in each dataset
+glimpse(wage1)
+glimpse(wage2)
+glimpse(fulldata)
+
+
+#unique IDs in each dataset
+glimpse(wage1)
+glimpse(wage2)
+
+##The number of people that are in `gensisc` but not in `wagegap`
+nrow(anti_join(wage1, wage2, by=c("X1" = "X1")))
+
+##The number of people that are in `wagegap` but not in `gendisc'
+nrow(anti_join(wage1, wage2, by=c("X1" = "X1")))
+
+##The number of people the two datasets have in common
+nrow(inner_join(wage1, wage2, by=c("X1" = "X1")))
+
 ```
 
-Discussions of joining here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
+*There are 61,697 obs/rows in both 'wage1' and 'wage2'. However, the data set 'wage1' contains 6 columns while the data set wage2 contains 7 columns. When joined together, the full data contains 61,697 obs/rows and 13 columns. There is 61,697 unique IDs in each data set (wage1 & wage2).*
+*The number of people that are in 'wage1' but not in 'wage2' is 0 and vice versa. This is because I split up the same data set into two, therefore the two datasets have all IDs in common. The number of people the two datasets have in common is 61,697. In the joined data set, zero rows were dropped because fulljoin was used. Fulljoin does not drop any rows and it retains all of the original data; therefore, the resulting joined data set has number of rows equal to union of IDs.*
+
 
 ####  Wrangling
 
 ```{R}
-# your wrangling code
 
-# your wrangling code
+#filter
+fulldata %>%  filter(gender == "Male" & realrinc > 15000)
+fulldata %>%  filter(gender == "Female"& realrinc > 15000)
 
-# your wrangling code
+#count
+fulldata %>% count(educcat)
+
+fulldata %>% count(gender == "Female") #34591
+fulldata %>% count(gender == "Male") #27106	
+
+fulldata %>% filter(gender == "Female") %>% count(educcat == "Bachelor"| educcat =="Graduate") 
+#(7095/34591)*100 = 20.5%
+fulldata %>% filter(gender == "Male") %>% count(educcat == "Bachelor"| educcat =="Graduate") 
+#(6723/27106)*100 = 24.8%
+
+#arrange
+fulldata %>% arrange(educcat)
+fulldata %>% arrange(desc(realrinc))
+
+#select
+fulldata %>% select(gender, educcat)
+fulldata %>% select(gender, realrinc) %>% na.omit()
+
+#group by
+fulldata %>% group_by(gender)
+fulldata %>% group_by(educcat)
+
+#mutate
+money_prestige <- fulldata %>% select(realrinc, prestg10) 
+
+fulldata <- fulldata %>% mutate(money_prestige,
+salary_per_prestige = realrinc/prestg10)
+
+fulldata %>% select(realrinc, prestg10, salary_per_prestige) %>% na.omit() %>% arrange(desc(prestg10))
+
+fulldata %>% mutate_if(is.numeric,round) %>% arrange(desc(realrinc))
+
+#summarize
+fulldata %>% summarize_if(is.numeric, mean, na.rm=T) 
+fulldata %>% summarize_all(mean, na.rm=T) 
+
+fulldata %>% filter(gender =="Female") %>% summarize_all(mean, na.rm=T) #16029.75
+fulldata %>% filter(gender =="Male") %>% summarize_all(mean, na.rm=T) #28504.11
+
+fulldata %>% summarize_all(sd, na.rm=T)
+
+###summary stats for income
+table1 <- fulldata %>% group_by(gender) %>% summarise(mean_inc=mean(realrinc, na.rm=T), sd_inc=sd(realrinc, na.rm = T), lowest_inc = min(realrinc, na.rm=T),
+    highest_inc = max(realrinc, na.rm = T), IQR_inc= IQR(realrinc, na.rm = T)) %>% na.omit()
+table1
+
+###summary stats for prestige
+table2 <- fulldata %>% group_by(gender) %>% summarise(mean_pres=mean(prestg10, na.rm=T), sd_pres=sd(prestg10, na.rm = T), lowest_pres = min(prestg10, na.rm=T),
+    highest_pres = max(prestg10, na.rm = T), IQR_pres= IQR(prestg10, na.rm = T)) %>% na.omit()
+table2
+
+###summary stats for age
+table3 <- fulldata %>% group_by(gender) %>% summarise(mean_age=mean(age, na.rm=T), sd_age=sd(age, na.rm = T), lowest_age = min(age, na.rm=T),
+    highest_age = max(age, na.rm = T), IQR_age= IQR(age, na.rm = T)) %>% na.omit()
+table3
+
+##summary stats for number of children
+table4 <- fulldata %>% group_by(gender) %>% summarise(mean_child=mean(childs, na.rm=T), sd_child=sd(childs, na.rm = T), lowest_child = min(childs, na.rm=T),
+    highest_child = max(childs, na.rm = T), IQR_chil= IQR(childs, na.rm = T)) %>% na.omit()
+table4
+
+##stringr
+library(tidyverse)
+
+string1 <- "From the 61,697 people in the study, the mean income for female was $16029 and the mean income for male was $28504. The lowest amount of income from the study is $227, and the highest income was $480144"
+  
+str_match_all(string1, "\\d+")
+
+
+##Summarize after grouping by a categorical variable
+fulldata %>% group_by(gender) %>% summarize(realrinc) %>% arrange(realrinc)
+
+fulldata %>% group_by(educcat) %>% summarize(realrinc) %>% arrange(desc(realrinc))
+
+##function inside summarize/ number of missing NA
+num_NA <- function(x){
+  sum(is.na(x))
+  }
+
+prop_NA <- function(x) {
+  mean(is.na(x))
+  }
+
+summarize_all(fulldata, num_NA) -> num_NA
+num_NA
+summarize_all(fulldata, prop_NA) -> prop_NA
+prop_NA
+
+## Table of counts for each categorical variables (summary statistics)
+fulldata %>% group_by() %>% summarise(n())
+
+fulldata %>% summarize_all(n_distinct)
+
+
+##Table with gt
+library(gt)
+
+table1 %>% gt %>%
+  tab_header(title=md("**Summary Statistics**"),
+             subtitle=md("A table of my summary statistics for income"))
+
 ```
 
 Your discussion of wrangling section here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
 
+  *Upon wrangling the joined data, the findings/results did not differ significantly from my original hypothesis. In filtering the data by gender and annual income, I was able to find out the amount of people from both genders make above the minimum wage, using Texas minimum wage of $15,000 a year as reference. More people who identify as male (12,844) earned more than Texas minimum wage compared to that of females (7,665). Next, I wanted to wrangle the data to find out if there are more males persuing higher education/degrees than that of females, and how that would correlate with the mean income from both genders. To do so, I used the filter and count dplyr functions to generate my targeted summary statistics. In doing so, I found that there are, in fact, higher proportion of males with higher degrees than that of females. In this data set, there only 20.5% of females have a degree of 'Bachelor' or 'Graduate', while males have a 24.8% of having a degree of 'Bachelor' or 'Graduate'. Using the dyplr functions filter and summarize_all, I was able to filter by gender and find out the mean income of both genders: $16029.7 for Female and $28504.11 for Male. This summary statistic is also shown later on when I compute the summary statistic tables.*
+ *Using the dyplr function 'summarize', I was able to make summary statistics tables of different variables. Table1 demonstrates that the mean income of Males is higher than that of Females. Table2 demonstrates when looking at job prestigious scores, Males has lightly higher job prestigious with a mean score of 43.73375 in comparison to Female's prestigious job score of 42.50235. Table3 demonstrates the summary statistics for the age of Females and Males, with Females having the mean age of 46.7 and Males with the mean age of 45.48. Finally, table4 demonstrates the summary statistics for the number of children that each respective gender has, with Females having a mean number of children of 2.05 and Males with 1.76. These numbers, while representative of this data, are not 100% accurate as I ommited the NAs in the data set. In using creating my own function and using it inside summarize, I was able to compute the amount and proportion of missing NAs in the data set, as shown above in num_NA and prop_NA, respectively.*
 
 #### Visualizing
 
 ```{R}
-# your plot 1
+ggplot(fulldata, aes(x = educcat, y = realrinc, fill=gender))+
+  geom_bar(stat="summary", fun=mean, position="dodge")+
+  geom_errorbar(stat="summary", fun.data=mean_se, position="dodge")+
+  theme(axis.text.x = element_text(angle=45, hjust=1))+  scale_fill_brewer(palette = "Pastel1")+
+  labs(x = "Education Status", y = "Annual Income ($)") + 
+    ggtitle("Amount of Income by Gender and Education Status") +scale_y_continuous(labels=scales::dollar)
 ```
 
 Your discussion of plot 1
+Write a supporting paragraph (for each plot) describing what the plot depicts and any relationships/trends that are apparent (9 pts)
+*In this bar graph, it is shown that across all education status, Male has higher income compared to Female. In addition, the plot depicts that the higher the education status, the higher the income of both genders. People holding Graduate level and Bachelor level degrees make more money than those who did not pursue higher education. In terms of error bars, omitting the data from the NA Education status, it seems that there is most error variation for Males with Graduate degrees in terms of income. All in all, when looking at gender and income alone, it is apparent that there is, in fact, a wage gap between both genders.*
 
 ```{R}
-# your plot 2
+
+
+ggplot(fulldata, aes(x = realrinc, fill = gender)) + geom_density(alpha = 0.8) +
+    labs(x = "Annual Income ($)", y = "Density") + 
+    ggtitle("Density Plot of Annual Income by Gender")+  scale_fill_brewer(palette = "Pastel1") + geom_vline(aes(xintercept = 15000), color = "red")+scale_x_continuous(labels=scales::dollar)
+
+
 ```
 
-Your discussion of plot 2
+
+*Similar to histograms, density plots are used to visualize the distribution of a numeric variable, annual income in this case, by drawing appropriate continuous curves. This type of plot is useful for this data set because it contains many data points, which is allows for the density plot to be reliable and informative. For this data set, density plots have an advantage over histograms because we can use it to visualize the income distribution of both genders. The red line on the plot demonstrates the line of minimum wage using Texas as reference ($15,000). As shown above, there is a larger density of Females who are making less than minimum wage compared to the density of Males who are making less than minimum wage. Males are depicted to have a wider distribution towards higher income, while there is a low density of Females who are making high income. Conclusively, this density plot shows the relationship between gender and income, and further validate my earlier hypothesis that Males have higher income than Females.*
 
 ```{R}
-# your plot 3
+
+
+ggplot(fulldata, aes(age, realrinc)) + geom_hex() +scale_fill_gradient(low = "dark red", high = "yellow") +
+  geom_hline(yintercept = c(15000), color = "blue") + labs(x = "Age", y = "Annual Income ($)") + 
+    ggtitle("Continuous Bivariate Distribution of Income and Age") + scale_y_continuous(labels=scales::dollar)
+
+
 ```
 
-Your discussion of plot 3
+*For this plot, I wanted to explore the continuous bivariate distribution between age and annual income. The blue line on the plot demonstrates the line of minimum wage using Texas as reference ($15,000).  This heat map is helpful in visualizing the magnitude of the distributions as color in two dimensions. It is apparent in this plot that the majority of people who are making minimum wage and less are under the age of 40. The plot depicts only a small subset of people who earns more than $100,000 annually.*
 
 #### Concluding Remarks
 
-If any!
-
+*Conclusively, upon doing data wrangling, data exploration, and data visualization, I was able to further examine the informative relationships between the explanatory variables: gender, education status, age, and others with the response variable: annual income. The results from the data wrangling and data visualization demonstrated that gender, education status, and age has an effect on the annual income of individuals in this population from the study. My earlier hypothesis: there is a wage gap between genders with Males having higher income than Females: are supported by the results from the data exploration.*
 
 
 
